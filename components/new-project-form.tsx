@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,24 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 
-const availableEquipment = [
-  "Microscope",
-  "Centrifuge",
-  "PCR Machine",
-  "Spectrophotometer",
-  "Incubator",
-  "Autoclave",
-  "HPLC",
-  "Mass Spectrometer",
-  "Chromatography",
-  "Electron Microscope",
-  "X-ray Diffractometer",
-  "Flow Cytometer",
-  "Cell Counter",
-  "Biosafety Cabinet",
-  "NMR Spectrometer",
-  "IR Spectrometer",
-]
+// available equipment will be loaded from backend
+// GET /labs/equipment -> returns List<String>
+const initialAvailableEquipment: string[] = []
 
 const availableEmployees = [
   { id: 1, name: "Alex Martinez", role: "Research Assistant" },
@@ -46,15 +31,31 @@ export function NewProjectForm() {
   const router = useRouter()
   const [projectName, setProjectName] = useState("")
   const [description, setDescription] = useState("")
-  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
+  const [selectedEquipment, setSelectedEquipment] = useState<Record<string, number>>({})
   const [selectedEmployees, setSelectedEmployees] = useState<number[]>([])
   const [matchedLabs, setMatchedLabs] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [availableEquipment, setAvailableEquipment] = useState<string[]>(initialAvailableEquipment)
 
   const toggleEquipment = (equipment: string) => {
-    setSelectedEquipment((prev) =>
-      prev.includes(equipment) ? prev.filter((item) => item !== equipment) : [...prev, equipment],
-    )
+    setSelectedEquipment((prev) => {
+      const copy = { ...prev }
+      if (copy[equipment] !== undefined) {
+        delete copy[equipment]
+      } else {
+        copy[equipment] = 1
+      }
+      return copy
+    })
+  }
+
+  const setEquipmentQuantity = (equipment: string, qty: number) => {
+    setSelectedEquipment((prev) => {
+      if (!prev[equipment]) return prev
+      const copy = { ...prev }
+      copy[equipment] = Math.max(1, qty)
+      return copy
+    })
   }
 
   const toggleEmployee = (employeeId: number) => {
@@ -63,39 +64,41 @@ export function NewProjectForm() {
     )
   }
 
+  useEffect(() => {
+    const fetchEquipment = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/labs/equipment")
+        if (!res.ok) return
+        const data: string[] = await res.json()
+        setAvailableEquipment(data)
+      } catch (e) {
+        // ignore for now
+      }
+    }
+    fetchEquipment()
+  }, [])
+
   const findAvailableLabs = () => {
     setIsSearching(true)
 
-    // Simulate lab matching
-    setTimeout(() => {
-      const labs = [
-        {
-          id: 1,
-          name: "Lab A-101",
-          equipment: ["Microscope", "Centrifuge", "PCR Machine"],
-          matchScore: 100,
-        },
-        {
-          id: 3,
-          name: "Lab A-103",
-          equipment: ["HPLC", "Mass Spectrometer", "Chromatography"],
-          matchScore: 85,
-        },
-        {
-          id: 5,
-          name: "Lab A-105",
-          equipment: ["Flow Cytometer", "Cell Counter", "Biosafety Cabinet"],
-          matchScore: 75,
-        },
-      ]
+    const payload = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))
 
-      setMatchedLabs(labs)
-      setIsSearching(false)
-    }, 1500)
+    fetch("http://localhost:8080/labs/reservation", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("network")
+        return res.json()
+      })
+      .then((data) => setMatchedLabs(data))
+      .catch(() => setMatchedLabs([]))
+      .finally(() => setIsSearching(false))
   }
 
-  const handleReserve = (labId: number) => {
-    // Simulate reservation
+  const handleReserve = (labId: string) => {
+    // For now just navigate after reserving; backend reservation can be added later
     setTimeout(() => {
       router.push("/dashboard")
     }, 500)
@@ -142,23 +145,34 @@ export function NewProjectForm() {
               <div key={equipment} className="flex items-center space-x-2">
                 <Checkbox
                   id={equipment}
-                  checked={selectedEquipment.includes(equipment)}
+                  checked={selectedEquipment[equipment] !== undefined}
                   onCheckedChange={() => toggleEquipment(equipment)}
                 />
                 <Label htmlFor={equipment} className="text-sm font-normal cursor-pointer">
                   {equipment}
                 </Label>
+                {selectedEquipment[equipment] !== undefined && (
+                  <div className="ml-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={selectedEquipment[equipment]}
+                      onChange={(e) => setEquipmentQuantity(equipment, parseInt(e.target.value || "1", 10))}
+                      className="w-20"
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          {selectedEquipment.length > 0 && (
+          {Object.keys(selectedEquipment).length > 0 && (
             <div className="mt-6 pt-6 border-t border-border">
-              <p className="text-sm font-medium mb-3">Selected Equipment ({selectedEquipment.length}):</p>
+              <p className="text-sm font-medium mb-3">Selected Equipment ({Object.keys(selectedEquipment).length}):</p>
               <div className="flex flex-wrap gap-2">
-                {selectedEquipment.map((item) => (
-                  <Badge key={item} variant="secondary">
-                    {item}
+                {Object.entries(selectedEquipment).map(([name, qty]) => (
+                  <Badge key={name} variant="secondary">
+                    {name} x{qty}
                   </Badge>
                 ))}
               </div>
@@ -231,7 +245,7 @@ export function NewProjectForm() {
         size="lg"
         className="w-full"
         onClick={findAvailableLabs}
-        disabled={!projectName || selectedEquipment.length === 0 || isSearching}
+        disabled={!projectName || Object.keys(selectedEquipment).length === 0 || isSearching}
       >
         {isSearching ? "Finding Available Labs..." : "Find Available Labs"}
       </Button>
@@ -243,27 +257,20 @@ export function NewProjectForm() {
             <CardDescription>We found {matchedLabs.length} labs that match your requirements</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {matchedLabs.map((lab) => (
+            {matchedLabs.map((lab: any) => (
               <div
-                key={lab.id}
+                key={lab.labId}
                 className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-accent/5 transition-colors"
               >
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-semibold text-lg">{lab.name}</h3>
-                    <Badge variant="outline" className="bg-accent/10 text-accent-foreground">
-                      {lab.matchScore}% Match
-                    </Badge>
+                    <h3 className="font-semibold text-lg">{lab.labId}</h3>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {lab.equipment.map((item: string, index: number) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {item}
-                      </Badge>
-                    ))}
+                  <div className="flex flex-col">
+                    <p className="text-sm text-muted-foreground">{lab.location}</p>
                   </div>
                 </div>
-                <Button onClick={() => handleReserve(lab.id)}>Reserve Lab</Button>
+                <Button onClick={() => handleReserve(lab.labId)}>Reserve Lab</Button>
               </div>
             ))}
           </CardContent>
