@@ -93,25 +93,58 @@ export function NewProjectForm() {
 
     const payload = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))
 
+    // POST payload to /labs/reservation to get matching labs
     fetch("http://localhost:8080/labs/reservation", {
-      method: "GET",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
       .then((res) => {
-        if (!res.ok) throw new Error("network")
+        if (!res.ok) throw new Error(`network:${res.status}`)
         return res.json()
       })
-      .then((data) => setMatchedLabs(data))
+      .then((data) => setMatchedLabs(data || []))
       .catch(() => setMatchedLabs([]))
       .finally(() => setIsSearching(false))
   }
 
-  const handleReserve = (labId: string) => {
-    // For now just navigate after reserving; backend reservation can be added later
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 500)
+  const handleReserve = async (labId: string) => {
+    // Build project object and equipmentRequests payload
+    const project = {
+      name: projectName,
+      labId,
+      description,
+    }
+
+    const equipmentRequests = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))
+
+    try {
+      const res = await fetch("http://localhost:8082/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project, equipmentRequests }),
+      })
+
+      if (res.status === 201) {
+        // created
+        router.push("/dashboard")
+        return
+      }
+
+      if (res.status === 409) {
+        alert("Reservation failed: not enough equipment available in selected lab")
+        return
+      }
+
+      // other errors
+      const text = await res.text()
+      alert(`Reservation failed: ${res.status} ${text}`)
+    } catch (err) {
+      // network or other
+      // eslint-disable-next-line no-console
+      console.error(err)
+      alert("Failed to contact projects backend (http://localhost:8082/projects)")
+    }
   }
 
   return (
