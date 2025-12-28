@@ -14,18 +14,13 @@ import { Badge } from "@/components/ui/badge"
 // GET /labs/equipment -> returns List<String>
 const initialAvailableEquipment: string[] = []
 
-const availableEmployees = [
-  { id: 1, name: "Alex Martinez", role: "Research Assistant" },
-  { id: 2, name: "Jessica Lee", role: "Lab Technician" },
-  { id: 3, name: "Rachel Kim", role: "Senior Researcher" },
-  { id: 4, name: "David Brown", role: "Research Assistant" },
-  { id: 5, name: "Maria Garcia", role: "Lab Technician" },
-  { id: 6, name: "Thomas Anderson", role: "Chemical Engineer" },
-  { id: 7, name: "Sophie Williams", role: "Research Assistant" },
-  { id: 8, name: "Emma Thompson", role: "Microbiologist" },
-  { id: 9, name: "Chris Evans", role: "Lab Technician" },
-  { id: 10, name: "Kevin Zhang", role: "Research Associate" },
-]
+type Employee = {
+  id: number
+  name: string
+  position?: string
+}
+
+const initialEmployees: Employee[] = []
 
 export function NewProjectForm() {
   const router = useRouter()
@@ -36,6 +31,7 @@ export function NewProjectForm() {
   const [matchedLabs, setMatchedLabs] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [availableEquipment, setAvailableEquipment] = useState<string[]>(initialAvailableEquipment)
+  const [availableEmployees, setAvailableEmployees] = useState<Employee[]>(initialEmployees)
 
   const toggleEquipment = (equipment: string) => {
     setSelectedEquipment((prev) => {
@@ -76,6 +72,20 @@ export function NewProjectForm() {
       }
     }
     fetchEquipment()
+    // fetch available employees from users-service
+    const fetchEmployees = async () => {
+      try {
+        const res = await fetch("http://localhost:8081/users")
+        if (!res.ok) return
+        const data: Employee[] = await res.json()
+        // backend may return `name` or `fullName` — prefer `name`, fallback to `fullName`
+        const mapped = data.map((u: any) => ({ id: u.id, name: u.name ?? u.fullName ?? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(), position: u.position }))
+        setAvailableEmployees(mapped)
+      } catch (e) {
+        // ignore for now
+      }
+    }
+    fetchEmployees()
   }, [])
 
   const findAvailableLabs = () => {
@@ -212,7 +222,7 @@ export function NewProjectForm() {
                     </div>
                     <div>
                       <p className="text-sm font-medium">{employee.name}</p>
-                      <p className="text-xs text-muted-foreground">{employee.role}</p>
+                      <p className="text-xs text-muted-foreground">{employee.position ?? "(no position)"}</p>
                     </div>
                   </div>
                 </Label>

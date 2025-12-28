@@ -15,6 +15,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
   const [surname, setSurname] = useState("")
+  const [position, setPosition] = useState("")
   const [code1, setCode1] = useState("")
   const [code2, setCode2] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -23,10 +24,45 @@ export function LoginForm() {
     e.preventDefault()
     setIsLoading(true)
 
-    setTimeout(() => {
+    try {
+      if (mode === "login") {
+        const res = await fetch("http://localhost:8081/users/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        })
+
+        if (!res.ok) throw new Error("Network response was not ok")
+        const ok: boolean = await res.json()
+        if (ok) {
+          router.push("/dashboard")
+        } else {
+          alert("Login failed: invalid credentials")
+        }
+      } else {
+        const fullName = `${name} ${surname}`.trim()
+        const res = await fetch("http://localhost:8081/users/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: fullName, email, password, position, code1, code2 }),
+        })
+
+        if (!res.ok) throw new Error("Network response was not ok")
+        const added: boolean = await res.json()
+        if (added) {
+          router.push("/dashboard")
+        } else {
+          alert("Registration failed: check input or codes")
+        }
+      }
+    } catch (err) {
+      // minimal error handling
+      // eslint-disable-next-line no-console
+      console.error(err)
+      alert("Request failed. Is the backend running on http://localhost:8081/users ?")
+    } finally {
       setIsLoading(false)
-      router.push("/dashboard")
-    }, 1000)
+    }
   }
 
   return (
@@ -62,6 +98,17 @@ export function LoginForm() {
                   placeholder="Doe"
                   value={surname}
                   onChange={(e) => setSurname(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Input
+                  id="position"
+                  type="text"
+                  placeholder="e.g. Researcher"
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
                   required
                 />
               </div>

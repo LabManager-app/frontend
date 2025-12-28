@@ -1,6 +1,7 @@
 import { DashboardHeader } from "@/components/dashboard-header"
 import { LabsGrid } from "@/components/labs-grid"
 import { ProjectsList } from "@/components/projects-list"
+import { UsersList } from "@/components/users-list"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
