@@ -31,13 +31,21 @@ export function LoginForm() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         })
-
-        if (!res.ok) throw new Error("Network response was not ok")
-        const ok: boolean = await res.json()
-        if (ok) {
-          router.push("/dashboard")
+        if (!res.ok) {
+          if (res.status === 401) alert("Login failed: invalid credentials")
+          else throw new Error("Network response was not ok")
         } else {
-          alert("Login failed: invalid credentials")
+          const user = await res.json()
+          // remove password before storing
+          const safeUser = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            position: user.position,
+          }
+          localStorage.setItem("user", JSON.stringify(safeUser))
+          router.push("/profile")
         }
       } else {
         const fullName = `${name} ${surname}`.trim()
@@ -47,12 +55,20 @@ export function LoginForm() {
           body: JSON.stringify({ name: fullName, email, password, position, code1, code2 }),
         })
 
-        if (!res.ok) throw new Error("Network response was not ok")
-        const added: boolean = await res.json()
-        if (added) {
-          router.push("/dashboard")
+        if (!res.ok) {
+          if (res.status === 400) alert("Registration failed: check input or codes")
+          else throw new Error("Network response was not ok")
         } else {
-          alert("Registration failed: check input or codes")
+          const user = await res.json()
+          const safeUser = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            position: user.position,
+          }
+          localStorage.setItem("user", JSON.stringify(safeUser))
+          router.push("/profile")
         }
       }
     } catch (err) {

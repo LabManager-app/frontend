@@ -32,6 +32,7 @@ export function NewProjectForm() {
   const [isSearching, setIsSearching] = useState(false)
   const [availableEquipment, setAvailableEquipment] = useState<string[]>(initialAvailableEquipment)
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>(initialEmployees)
+  const [currentUser, setCurrentUser] = useState<any | null>(null)
 
   const toggleEquipment = (equipment: string) => {
     setSelectedEquipment((prev) => {
@@ -55,6 +56,8 @@ export function NewProjectForm() {
   }
 
   const toggleEmployee = (employeeId: number) => {
+    // prevent selecting the currently logged-in user as a team member
+    if (currentUser && employeeId === currentUser.id) return
     setSelectedEmployees((prev) =>
       prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId],
     )
@@ -80,7 +83,12 @@ export function NewProjectForm() {
         const data: Employee[] = await res.json()
         // backend may return `name` or `fullName` — prefer `name`, fallback to `fullName`
         const mapped = data.map((u: any) => ({ id: u.id, name: u.name ?? u.fullName ?? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(), position: u.position }))
-        setAvailableEmployees(mapped)
+        // load current user from localStorage and filter them out from selectable employees
+        const raw = localStorage.getItem("user")
+        const me = raw ? JSON.parse(raw) : null
+        setCurrentUser(me)
+        const filtered = me ? mapped.filter((e) => e.id !== me.id) : mapped
+        setAvailableEmployees(filtered)
       } catch (e) {
         // ignore for now
       }
@@ -114,6 +122,8 @@ export function NewProjectForm() {
       name: projectName,
       labId,
       description,
+      projectLeaderId: currentUser?.id ?? null,
+      teamMembers: selectedEmployees.filter((id) => id !== currentUser?.id),
     }
 
     const equipmentRequests = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))

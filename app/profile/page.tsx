@@ -1,11 +1,18 @@
+"use client"
+
+import { useEffect, useState } from "react"
+
 export default function ProfilePage() {
-  // Mock user data
-  const user = {
-    firstName: "Jane",
-    lastName: "Doe",
-    email: "jane.doe@lab.edu",
-    position: "Senior Research Scientist",
-  }
+  const [user, setUser] = useState<any | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user")
+      if (raw) setUser(JSON.parse(raw))
+    } catch (e) {
+      // ignore
+    }
+  }, [])
 
   const currentProjects = [
     {
@@ -43,9 +50,16 @@ export default function ProfilePage() {
     },
   ]
 
+  // derive display name and initials
+  const fullName = user?.name || `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
+  const nameParts = fullName.split(" ")
+  const firstName = nameParts[0] || ""
+  const lastName = nameParts.slice(1).join(" ") || ""
+  const initials = (firstName[0] || "") + (lastName[0] || "")
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-6 md:px-12 lg:px-20 py-8">
+    <div className="min-h-screen bg-background flex items-center justify-center py-8">
+      <div className="w-full max-w-4xl px-6">
         <div className="mb-8">
           <a
             href="/dashboard"
@@ -65,24 +79,23 @@ export default function ProfilePage() {
             <div className="flex items-start gap-6">
               <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center">
                 <span className="text-2xl font-semibold text-accent-foreground">
-                  {user.firstName[0]}
-                  {user.lastName[0]}
+                  {initials || "U"}
                 </span>
               </div>
               <div className="flex-1 space-y-3">
                 <div>
                   <p className="text-sm text-muted-foreground">Full Name</p>
                   <p className="text-lg font-semibold text-foreground">
-                    {user.firstName} {user.lastName}
+                      {fullName || "Unknown User"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="text-foreground">{user.email}</p>
+                    <p className="text-foreground">{user?.email || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Position</p>
-                  <p className="text-foreground">{user.position}</p>
+                    <p className="text-foreground">{user?.position || "-"}</p>
                 </div>
               </div>
             </div>
