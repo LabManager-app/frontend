@@ -122,8 +122,10 @@ export function NewProjectForm() {
       name: projectName,
       labId,
       description,
-      projectLeaderId: currentUser?.id ?? null,
-      teamMembers: selectedEmployees.filter((id) => id !== currentUser?.id),
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: null,
+      projectLeader: currentUser?.id ?? null,
+      participants: selectedEmployees.filter((id) => id !== currentUser?.id),
     }
 
     const equipmentRequests = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))

@@ -1,41 +1,69 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
-const projects = [
-  {
-    id: 1,
-    name: "Protein Analysis Study",
-    lab: "Lab A-101",
-    leader: "Dr. Sarah Chen",
-    status: "active",
-    startDate: "2025-10-20",
-    equipment: ["Microscope", "Centrifuge"],
-  },
-  {
-    id: 2,
-    name: "Cell Culture Research",
-    lab: "Lab A-105",
-    leader: "Dr. Michael Roberts",
-    status: "active",
-    startDate: "2025-10-22",
-    equipment: ["Flow Cytometer", "Biosafety Cabinet"],
-  },
-  {
-    id: 3,
-    name: "Chemical Synthesis",
-    lab: "Lab A-103",
-    leader: "Dr. Emily Johnson",
-    status: "completed",
-    startDate: "2025-10-15",
-    equipment: ["HPLC", "Chromatography"],
-  },
-]
+type Project = {
+  id: number
+  name: string
+  labId: string
+  description?: string
+  startDate?: string
+  endDate?: string | null
+  projectLeader?: number
+  status?: string
+  participants?: number[]
+  equipment?: Array<{ id?: number; name: string; stock: number }>
+}
 
 export function ProjectsList() {
-  const activeProjects = projects.filter((project) => project.status === "active")
-  const pastProjects = projects.filter((project) => project.status === "completed" || project.status === "canceled")
+  const [activeProjects, setActiveProjects] = useState<Project[]>([])
+  const [pastProjects, setPastProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
+  const [usersMap, setUsersMap] = useState<Record<number, string>>({})
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setLoading(true)
+      try {
+        const [resActive, resPast] = await Promise.all([
+          fetch("http://localhost:8082/projects"),
+          fetch("http://localhost:8082/projects/completed"),
+        ])
+
+        if (resActive.ok) setActiveProjects(await resActive.json())
+        if (resPast.ok) setPastProjects(await resPast.json())
+
+        // fetch users to map leader IDs to names
+        try {
+          const resUsers = await fetch("http://localhost:8081/users")
+          if (resUsers.ok) {
+            const users = await resUsers.json()
+            const map: Record<number, string> = {}
+            users.forEach((u: any) => {
+              const display = u.name ?? u.fullName ?? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
+              if (u.id != null) map[u.id] = display
+            })
+            setUsersMap(map)
+          }
+        } catch (e) {
+          // ignore
+        }
+      } catch (e) {
+        // ignore for now
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProjects()
+  }, [])
+
+  if (loading) {
+    return <div>Loading projects...</div>
+  }
 
   return (
     <div className="space-y-8">
@@ -50,8 +78,7 @@ export function ProjectsList() {
                     <div className="space-y-1">
                       <CardTitle>{project.name}</CardTitle>
                       <CardDescription>
-                        Led by {project.leader} • {project.lab} • Started{" "}
-                        {new Date(project.startDate).toLocaleDateString()}
+                        Led by {usersMap[project.projectLeader ?? -1] ?? project.projectLeader ?? "-"} • {project.labId} • Started {project.startDate ? new Date(project.startDate).toLocaleDateString() : "-"}
                       </CardDescription>
                     </div>
                     <Badge className="bg-accent text-accent-foreground">ACTIVE</Badge>
@@ -60,9 +87,9 @@ export function ProjectsList() {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-2">
-                      {project.equipment.map((item, index) => (
+                      {(project.equipment || []).map((item, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
-                          {item}
+                          {item.name}
                         </Badge>
                       ))}
                     </div>
@@ -94,30 +121,29 @@ export function ProjectsList() {
                     <div className="space-y-1">
                       <CardTitle>{project.name}</CardTitle>
                       <CardDescription>
-                        Led by {project.leader} • {project.lab} • Started{" "}
-                        {new Date(project.startDate).toLocaleDateString()}
+                        Led by {usersMap[project.projectLeader ?? -1] ?? project.projectLeader ?? "-"} • {project.labId} • Started {project.startDate ? new Date(project.startDate).toLocaleDateString() : "-"}
                       </CardDescription>
                     </div>
                     <Badge
                       variant="secondary"
                       className={
-                        project.status === "completed"
+                        project.status === "COMPLETED"
                           ? "bg-green-500 text-white"
-                          : project.status === "canceled"
+                          : project.status === "CANCELLED"
                             ? "bg-red-500 text-white"
                             : ""
                       }
                     >
-                      {project.status.toUpperCase()}
+                      {(project.status || "").toString().toUpperCase()}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-2">
-                      {project.equipment.map((item, index) => (
+                      {(project.equipment || []).map((item, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
-                          {item}
+                          {item.name}
                         </Badge>
                       ))}
                     </div>

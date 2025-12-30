@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,92 +17,47 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useState } from "react"
 
-const projectsData = {
-  "1": {
-    name: "Protein Analysis Study",
-    lab: "Lab A-101",
-    leader: "Dr. Sarah Chen",
-    status: "active",
-    startDate: "2025-10-20",
-    description:
-      "Comprehensive study analyzing protein structures and their interactions using advanced microscopy techniques. This research aims to understand the fundamental mechanisms of protein folding and stability.",
-    equipment: ["Microscope", "Centrifuge", "PCR Machine"],
-    employees: [
-      { name: "Dr. Sarah Chen", role: "Project Leader" },
-      { name: "Alex Martinez", role: "Research Assistant" },
-      { name: "Jessica Lee", role: "Lab Technician" },
-    ],
-  },
-  "2": {
-    name: "Cell Culture Research",
-    lab: "Lab A-105",
-    leader: "Dr. Michael Roberts",
-    status: "active",
-    startDate: "2025-10-22",
-    description:
-      "Investigation of cell growth patterns and behavior in controlled environments. Focus on optimizing culture conditions for various cell types and understanding cellular responses to environmental changes.",
-    equipment: ["Flow Cytometer", "Cell Counter", "Biosafety Cabinet"],
-    employees: [
-      { name: "Dr. Michael Roberts", role: "Project Leader" },
-      { name: "Rachel Kim", role: "Senior Researcher" },
-      { name: "David Brown", role: "Research Assistant" },
-      { name: "Maria Garcia", role: "Lab Technician" },
-    ],
-  },
-  "3": {
-    name: "Chemical Synthesis",
-    lab: "Lab A-103",
-    leader: "Dr. Emily Johnson",
-    status: "completed",
-    startDate: "2025-10-15",
-    description:
-      "Development of novel synthetic pathways for organic compounds using chromatographic separation techniques. This project successfully identified several new compounds with potential pharmaceutical applications.",
-    equipment: ["HPLC", "Mass Spectrometer", "Chromatography"],
-    employees: [
-      { name: "Dr. Emily Johnson", role: "Project Leader" },
-      { name: "Thomas Anderson", role: "Chemical Engineer" },
-      { name: "Sophie Williams", role: "Research Assistant" },
-    ],
-  },
-  "4": {
-    name: "Microbial Growth Analysis",
-    lab: "Lab A-102",
-    leader: "Dr. James Wilson",
-    status: "active",
-    startDate: "2025-11-01",
-    description:
-      "Study of bacterial growth patterns under various environmental conditions using spectrophotometry and incubation techniques.",
-    equipment: ["Spectrophotometer", "Incubator", "Autoclave"],
-    employees: [
-      { name: "Dr. James Wilson", role: "Project Leader" },
-      { name: "Emma Thompson", role: "Microbiologist" },
-      { name: "Chris Evans", role: "Lab Technician" },
-    ],
-  },
-  "5": {
-    name: "Enzyme Kinetics Study",
-    lab: "Lab A-102",
-    leader: "Dr. Lisa Anderson",
-    status: "active",
-    startDate: "2025-10-28",
-    description: "Research on enzyme activity and reaction rates under different temperature and pH conditions.",
-    equipment: ["Spectrophotometer", "Incubator"],
-    employees: [
-      { name: "Dr. Lisa Anderson", role: "Project Leader" },
-      { name: "Kevin Zhang", role: "Research Associate" },
-    ],
-  },
-}
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const project = projectsData[id as keyof typeof projectsData]
 
-  if (!project) {
-    return <div>Project not found</div>
-  }
+export default function ProjectDetailPage() {
+  const params = useParams()
+  const rawId = params?.id
+  const id = Array.isArray(rawId) ? rawId[0] : rawId
+  const [project, setProject] = useState<any | null>(null)
+  const [usersMap, setUsersMap] = useState<Record<number, string>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) return
+    setLoading(true)
+    const fetchData = async () => {
+      try {
+        const [resProject, resUsers] = await Promise.all([
+          fetch(`http://localhost:8082/projects/${id}`),
+          fetch(`http://localhost:8081/users`),
+        ])
+        if (resProject.ok) setProject(await resProject.json())
+        if (resUsers.ok) {
+          const users = await resUsers.json()
+          const map: Record<number, string> = {}
+          users.forEach((u: any) => {
+            const display = u.name ?? u.fullName ?? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
+            if (u.id != null) map[u.id] = display
+          })
+          setUsersMap(map)
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  if (loading) return <div>Loading...</div>
+  if (!project) return <div>Project not found</div>
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,7 +76,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{project.name}</h1>
-              <p className="text-muted-foreground">{project.lab}</p>
+              <p className="text-muted-foreground">{project.labId || project.lab}</p>
             </div>
             <div className="flex items-center gap-3">
               <Badge
@@ -132,9 +89,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                       : "bg-red-500 text-white"
                 }
               >
-                {project.status.toUpperCase()}
+                {(project.status || "").toString().toUpperCase()}
               </Badge>
-              <StatusChangeDialog projectId={id} currentStatus={project.status} />
+              <StatusChangeDialog projectId={id} currentStatus={project.status} onSaved={(p: any) => setProject(p)} />
             </div>
           </div>
 
@@ -146,15 +103,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Project Leader</p>
-                  <p className="text-base">{project.leader}</p>
+                  <p className="text-base">{usersMap[project.projectLeader] ?? project.projectLeader ?? project.leader ?? "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Start Date</p>
-                  <p className="text-base">{new Date(project.startDate).toLocaleDateString()}</p>
+                  <p className="text-base">{project.startDate ? new Date(project.startDate).toLocaleDateString() : "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Location</p>
-                  <p className="text-base">{project.lab}</p>
+                  <p className="text-base">{project.labId || project.lab}</p>
                 </div>
               </CardContent>
             </Card>
@@ -166,9 +123,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {project.equipment.map((item, index) => (
+                  {(project.equipment || []).map((item: any, index: number) => (
                     <Badge key={index} variant="outline">
-                      {item}
+                      {item.name ?? item}
                     </Badge>
                   ))}
                 </div>
@@ -192,24 +149,28 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {project.employees.map((employee, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium text-primary">
-                          {employee.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-medium">{employee.name}</p>
-                        <p className="text-sm text-muted-foreground">{employee.role}</p>
+                {(project.participants || []).length === 0 ? (
+                  <p className="text-muted-foreground">No participants</p>
+                ) : (
+                  (project.participants || []).map((pid: number) => (
+                    <div key={pid} className="flex items-center justify-between py-3 border-b last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium text-primary">
+                            {(usersMap[pid] || "?")
+                              .split(" ")
+                              .map((n: string) => n[0])
+                              .join("")}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{usersMap[pid] ?? pid}</p>
+                          <p className="text-sm text-muted-foreground">{pid === project.projectLeader ? "Project Leader" : "Team Member"}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -219,16 +180,38 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   )
 }
 
-function StatusChangeDialog({ projectId, currentStatus }: { projectId: string; currentStatus: string }) {
+function StatusChangeDialog({ projectId, currentStatus, onSaved }: { projectId?: string; currentStatus?: string; onSaved?: (p: any) => void }) {
   const [open, setOpen] = useState(false)
-  const [selectedStatus, setSelectedStatus] = useState(currentStatus)
+  const [selectedStatus, setSelectedStatus] = useState<string>(currentStatus ?? "active")
 
   const handleSave = () => {
-    // In a real app, this would update the database
-    console.log("[v0] Changing project status to:", selectedStatus)
-    setOpen(false)
-    // Refresh the page to show the new status
-    window.location.reload()
+    if (!projectId) {
+      alert("Missing project id")
+      return
+    }
+
+    const doUpdate = async () => {
+      try {
+        const enumStatus = (selectedStatus || "active").toUpperCase()
+        const res = await fetch(`http://localhost:8082/projects/${projectId}/status?status=${encodeURIComponent(enumStatus)}`, {
+          method: "PUT",
+        })
+        if (!res.ok) {
+          const txt = await res.text()
+          console.error("Failed to update status", res.status, txt)
+          alert("Failed to update project status")
+          return
+        }
+        const updated = await res.json()
+        if (onSaved) onSaved(updated)
+        setOpen(false)
+      } catch (e) {
+        console.error(e)
+        alert("Error updating project status")
+      }
+    }
+
+    doUpdate()
   }
 
   return (
