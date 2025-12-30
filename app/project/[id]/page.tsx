@@ -25,7 +25,7 @@ export default function ProjectDetailPage() {
   const rawId = params?.id
   const id = Array.isArray(rawId) ? rawId[0] : rawId
   const [project, setProject] = useState<any | null>(null)
-  const [usersMap, setUsersMap] = useState<Record<number, string>>({})
+  const [usersMap, setUsersMap] = useState<Record<number, { name: string; position?: string }>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -40,10 +40,10 @@ export default function ProjectDetailPage() {
         if (resProject.ok) setProject(await resProject.json())
         if (resUsers.ok) {
           const users = await resUsers.json()
-          const map: Record<number, string> = {}
+          const map: Record<number, { name: string; position?: string }> = {}
           users.forEach((u: any) => {
             const display = u.name ?? u.fullName ?? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()
-            if (u.id != null) map[u.id] = display
+            if (u.id != null) map[u.id] = { name: display, position: u.position ?? u.role }
           })
           setUsersMap(map)
         }
@@ -103,7 +103,7 @@ export default function ProjectDetailPage() {
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Project Leader</p>
-                  <p className="text-base">{usersMap[project.projectLeader] ?? project.projectLeader ?? project.leader ?? "-"}</p>
+                  <p className="text-base">{usersMap[project.projectLeader]?.name ?? project.projectLeader ?? project.leader ?? "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Start Date</p>
@@ -156,16 +156,16 @@ export default function ProjectDetailPage() {
                     <div key={pid} className="flex items-center justify-between py-3 border-b last:border-0">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
-                            {(usersMap[pid] || "?")
+                            <span className="text-sm font-medium text-primary">
+                            {(usersMap[pid]?.name || "?")
                               .split(" ")
                               .map((n: string) => n[0])
                               .join("")}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium">{usersMap[pid] ?? pid}</p>
-                          <p className="text-sm text-muted-foreground">{pid === project.projectLeader ? "Project Leader" : "Team Member"}</p>
+                          <p className="font-medium">{usersMap[pid]?.name ?? pid}</p>
+                          <p className="text-sm text-muted-foreground">{pid === project.projectLeader ? "Project Leader" : (usersMap[pid]?.position ?? "Team Member")}</p>
                         </div>
                       </div>
                     </div>
