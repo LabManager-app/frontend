@@ -45,7 +45,7 @@ export function LoginForm() {
             position: user.position,
           }
           localStorage.setItem("user", JSON.stringify(safeUser))
-          router.push("/profile")
+          router.push("/dashboard")
         }
       } else {
         const fullName = `${name} ${surname}`.trim()
@@ -68,7 +68,7 @@ export function LoginForm() {
             position: user.position,
           }
           localStorage.setItem("user", JSON.stringify(safeUser))
-          router.push("/profile")
+          router.push("/dashboard")
         }
       }
     } catch (err) {
