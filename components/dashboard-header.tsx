@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -9,6 +12,28 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export function DashboardHeader() {
+  const [user, setUser] = useState<any | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user")
+      if (raw) setUser(JSON.parse(raw))
+    } catch (e) {
+      // ignore
+    }
+  }, [])
+
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .slice(0, 2)
+    : "JD"
+
+  const displayName = user?.name ?? "Dr. Jane Doe"
+  const displayEmail = user?.email ?? "jane.doe@lab.edu"
+
   return (
     <header className="border-b border-border bg-card">
       <div className="container mx-auto px-6 md:px-12 lg:px-20 py-4 flex items-center justify-between">
@@ -33,22 +58,21 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
-                <span className="text-sm font-medium text-accent-foreground">JD</span>
+                <span className="text-sm font-medium text-accent-foreground">{initials}</span>
               </div>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">Dr. Jane Doe</p>
-                <p className="text-xs text-muted-foreground">jane.doe@lab.edu</p>
+                <p className="text-sm font-medium">{displayName}</p>
+                <p className="text-xs text-muted-foreground">{displayEmail}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <a href="/profile">Profile</a>
             </DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive">Sign out</DropdownMenuItem>
           </DropdownMenuContent>
