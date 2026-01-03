@@ -26,6 +26,7 @@ export default function ProjectDetailPage() {
   const id = Array.isArray(rawId) ? rawId[0] : rawId
   const [project, setProject] = useState<any | null>(null)
   const [usersMap, setUsersMap] = useState<Record<number, { name: string; position?: string }>>({})
+  const [currentUser, setCurrentUser] = useState<{ id?: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,6 +55,12 @@ export default function ProjectDetailPage() {
       }
     }
     fetchData()
+    try {
+      const raw = localStorage.getItem("user")
+      if (raw) setCurrentUser(JSON.parse(raw))
+    } catch (e) {
+      // ignore
+    }
   }, [id])
 
   if (loading) return <div>Loading...</div>
@@ -91,7 +98,9 @@ export default function ProjectDetailPage() {
               >
                 {(project.status || "").toString().toUpperCase()}
               </Badge>
-              <StatusChangeDialog projectId={id} currentStatus={project.status} onSaved={(p: any) => setProject(p)} />
+              {currentUser && currentUser.id === project.projectLeader ? (
+                <StatusChangeDialog projectId={id} currentStatus={project.status} onSaved={(p: any) => setProject(p)} />
+              ) : null}
             </div>
           </div>
 

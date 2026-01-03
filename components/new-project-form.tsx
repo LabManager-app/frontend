@@ -30,6 +30,7 @@ export function NewProjectForm() {
   const [selectedEmployees, setSelectedEmployees] = useState<number[]>([])
   const [matchedLabs, setMatchedLabs] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [availableEquipment, setAvailableEquipment] = useState<string[]>(initialAvailableEquipment)
   const [availableEmployees, setAvailableEmployees] = useState<Employee[]>(initialEmployees)
   const [currentUser, setCurrentUser] = useState<any | null>(null)
@@ -191,8 +192,69 @@ export function NewProjectForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Required Equipment</CardTitle>
-          <CardDescription>Select all equipment needed for your project</CardDescription>
+          <div className="flex items-start justify-between w-full">
+            <div>
+              <CardTitle>Required Equipment</CardTitle>
+              <CardDescription>Select all equipment needed for your project</CardDescription>
+            </div>
+            <div className="flex items-start">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  if (!description || description.trim() === "") {
+                    alert("Please add a project description first")
+                    return
+                  }
+                  setIsGenerating(true)
+                  try {
+                    const res = await fetch("http://localhost:8082/projects/generateEquipment", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ description, availableEquipment }),
+                    })
+                    if (!res.ok) {
+                      const txt = await res.text()
+                      console.error("generateEquipment failed", res.status, txt)
+                      alert("Failed to generate equipment suggestions")
+                      return
+                    }
+                    const data: Array<{ name: string; stock?: number }> = await res.json()
+                    if (!Array.isArray(data) || data.length === 0) {
+                      alert("No suggestions returned")
+                      return
+                    }
+                    // merge into selectedEquipment: check availability (case-insensitive) and set qty
+                    setSelectedEquipment((prev) => {
+                      const copy: Record<string, number> = { ...prev }
+                      // build lowercase lookup from availableEquipment -> original name
+                      const lookup: Record<string, string> = {}
+                      availableEquipment.forEach((e) => {
+                        if (e) lookup[e.toLowerCase().trim()] = e
+                      })
+
+                      data.forEach((item) => {
+                        if (!item || !item.name) return
+                        const key = String(item.name).toLowerCase().trim()
+                        const matched = lookup[key]
+                        if (!matched) return
+                        copy[matched] = Math.max(1, item.stock ?? 1)
+                      })
+                      return copy
+                    })
+                  } catch (e) {
+                    console.error(e)
+                    alert("Error generating equipment")
+                  } finally {
+                    setIsGenerating(false)
+                  }
+                }}
+                disabled={isGenerating}
+              >
+                {isGenerating ? "Generating..." : "Generate from description"}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
