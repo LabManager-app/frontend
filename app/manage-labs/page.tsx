@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { labsPath } from "@/lib/backend"
 
 interface Equipment {
   id: number
@@ -31,7 +32,7 @@ export default function ManageLabsPage() {
   // fetch labs from backend
   useEffect(() => {
     setLoadingLabs(true)
-    fetch("http://localhost:8080/labs")
+    fetch(labsPath('/labs'))
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
         return res.json()
@@ -74,7 +75,7 @@ export default function ManageLabsPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/labs", {
+      const res = await fetch(labsPath('/labs'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -108,7 +109,7 @@ export default function ManageLabsPage() {
   const performDeleteLab = async () => {
     if (!labToDelete) return
     try {
-      const res = await fetch(`http://localhost:8080/labs?labId=${encodeURIComponent(labToDelete)}`, {
+      const res = await fetch(labsPath(`/labs?labId=${encodeURIComponent(labToDelete)}`), {
         method: "DELETE",
       })
 
@@ -144,7 +145,7 @@ export default function ManageLabsPage() {
     ]
 
     try {
-      const res = await fetch(`http://localhost:8080/labs/${encodeURIComponent(selectedLab)}/equipment`, {
+      const res = await fetch(labsPath(`/labs/${encodeURIComponent(selectedLab)}/equipment`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -160,9 +161,7 @@ export default function ManageLabsPage() {
       const ok = await res.json()
       if (ok) {
         try {
-          const eqRes = await fetch(
-            `http://localhost:8080/labs/${encodeURIComponent(selectedLab)}/equipment`,
-          )
+          const eqRes = await fetch(labsPath(`/labs/${encodeURIComponent(selectedLab)}/equipment`))
 
           if (!eqRes.ok) {
             const txt = await eqRes.text()
@@ -198,7 +197,7 @@ export default function ManageLabsPage() {
 
     try {
       const res = await fetch(
-        `http://localhost:8080/labs/${encodeURIComponent(selectedLab)}/equipment/${equipmentToRemove.id}?quantity=${removeQuantity}`,
+        labsPath(`/labs/${encodeURIComponent(selectedLab)}/equipment/${equipmentToRemove.id}?quantity=${removeQuantity}`),
         { method: "DELETE" },
       )
 
@@ -261,14 +260,12 @@ export default function ManageLabsPage() {
         // Occupy: send JSON body { occupactionType }
         const occ = occupyReason?.trim() || "Occupied"
         const payload = { occupactionType: occ }
-        const res = await fetch(
-          `http://localhost:8080/labs/${encodeURIComponent(selectedLab)}/occupation`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          },
-        )
+        const res = await fetch(labsPath(`/labs/${encodeURIComponent(selectedLab)}/occupation`), {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            },
+          )
 
         if (!res.ok) {
           const txt = await res.text()
@@ -279,10 +276,7 @@ export default function ManageLabsPage() {
         setLabs((prev) => prev.map((lab) => (lab.labId === selectedLab ? { ...lab, occupactionType: occ } : lab)))
       } else {
         // Free: PATCH without body
-        const res = await fetch(
-          `http://localhost:8080/labs/${encodeURIComponent(selectedLab)}/occupation`,
-          { method: "PATCH" },
-        )
+        const res = await fetch(labsPath(`/labs/${encodeURIComponent(selectedLab)}/occupation`), { method: "PATCH" })
 
         if (!res.ok) {
           const txt = await res.text()
@@ -310,7 +304,7 @@ export default function ManageLabsPage() {
     if (!selectedLab) return
     let cancelled = false
     setEquipmentLoading(true)
-    fetch(`http://localhost:8080/labs/${encodeURIComponent(selectedLab)}/equipment`)
+    fetch(labsPath(`/labs/${encodeURIComponent(selectedLab)}/equipment`))
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
         return res.json()

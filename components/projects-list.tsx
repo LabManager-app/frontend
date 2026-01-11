@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { projectsPath, usersPath } from "@/lib/backend"
 
 type Project = {
   id: number
@@ -30,8 +31,8 @@ export function ProjectsList() {
       setLoading(true)
       try {
         const [resActive, resPast] = await Promise.all([
-          fetch("http://localhost:8082/projects"),
-          fetch("http://localhost:8082/projects/completed"),
+          fetch(projectsPath('/projects')),
+          fetch(projectsPath('/projects/completed')),
         ])
 
         if (resActive.ok) setActiveProjects(await resActive.json())
@@ -39,7 +40,7 @@ export function ProjectsList() {
 
         // fetch users to map leader IDs to names
         try {
-          const resUsers = await fetch("http://localhost:8081/users")
+          const resUsers = await fetch(usersPath('/users'))
           if (resUsers.ok) {
             const users = await resUsers.json()
             const map: Record<number, string> = {}

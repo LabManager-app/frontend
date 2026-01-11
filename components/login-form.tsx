@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { usersPath } from "@/lib/backend"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -26,7 +27,7 @@ export function LoginForm() {
 
     try {
       if (mode === "login") {
-        const res = await fetch("http://localhost:8081/users/login", {
+        const res = await fetch(usersPath('/users/login'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -49,7 +50,7 @@ export function LoginForm() {
         }
       } else {
         const fullName = `${name} ${surname}`.trim()
-        const res = await fetch("http://localhost:8081/users/register", {
+        const res = await fetch(usersPath('/users/register'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: fullName, email, password, position, code1, code2 }),
@@ -75,7 +76,7 @@ export function LoginForm() {
       // minimal error handling
       // eslint-disable-next-line no-console
       console.error(err)
-      alert("Request failed. Is the backend running on http://localhost:8081/users ?")
+      alert(`Request failed. Is the backend running on ${usersPath('/users')} ?`)
     } finally {
       setIsLoading(false)
     }

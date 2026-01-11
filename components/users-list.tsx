@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { usersPath } from "@/lib/backend"
 
 type User = {
   id?: number
@@ -18,7 +19,7 @@ export function UsersList() {
     let mounted = true
     const fetchUsers = async () => {
       try {
-        const res = await fetch("http://localhost:8081/users")
+        const res = await fetch(usersPath('/users'))
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data: User[] = await res.json()
         if (mounted) setUsers(data)

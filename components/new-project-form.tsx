@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
+import { usersPath, projectsPath, labsPath } from "@/lib/backend"
 
 // available equipment will be loaded from backend
 // GET /labs/equipment -> returns List<String>
@@ -67,7 +68,7 @@ export function NewProjectForm() {
   useEffect(() => {
     const fetchEquipment = async () => {
       try {
-        const res = await fetch("http://localhost:8080/labs/equipment")
+        const res = await fetch(labsPath('/labs/equipment'))
         if (!res.ok) return
         const data: string[] = await res.json()
         setAvailableEquipment(data)
@@ -79,7 +80,7 @@ export function NewProjectForm() {
     // fetch available employees from users-service
     const fetchEmployees = async () => {
       try {
-        const res = await fetch("http://localhost:8081/users")
+        const res = await fetch(usersPath('/users'))
         if (!res.ok) return
         const data: Employee[] = await res.json()
         // backend may return `name` or `fullName` — prefer `name`, fallback to `fullName`
@@ -103,7 +104,7 @@ export function NewProjectForm() {
     const payload = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))
 
     // POST payload to /labs/reservation to get matching labs
-    fetch("http://localhost:8080/labs/reservation", {
+    fetch(labsPath('/labs/reservation'), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -132,7 +133,7 @@ export function NewProjectForm() {
     const equipmentRequests = Object.entries(selectedEquipment).map(([name, qty]) => ({ name, stock: qty }))
 
     try {
-      const res = await fetch("http://localhost:8082/projects", {
+      const res = await fetch(projectsPath('/projects'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ project, equipmentRequests }),
@@ -156,7 +157,7 @@ export function NewProjectForm() {
       // network or other
       // eslint-disable-next-line no-console
       console.error(err)
-      alert("Failed to contact projects backend (http://localhost:8082/projects)")
+      alert(`Failed to contact projects backend (${projectsPath('/projects')})`)
     }
   }
 
@@ -208,7 +209,7 @@ export function NewProjectForm() {
                   }
                   setIsGenerating(true)
                   try {
-                    const res = await fetch("http://localhost:8082/projects/generateEquipment", {
+                    const res = await fetch(projectsPath('/projects/generateEquipment'), {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ description, availableEquipment }),

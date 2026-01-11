@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { projectsPath, usersPath } from "@/lib/backend"
 import { useParams } from "next/navigation"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,8 +36,8 @@ export default function ProjectDetailPage() {
     const fetchData = async () => {
       try {
         const [resProject, resUsers] = await Promise.all([
-          fetch(`http://localhost:8082/projects/${id}`),
-          fetch(`http://localhost:8081/users`),
+          fetch(projectsPath(`/projects/${id}`)),
+          fetch(usersPath('/users')),
         ])
         if (resProject.ok) setProject(await resProject.json())
         if (resUsers.ok) {
@@ -202,7 +203,7 @@ function StatusChangeDialog({ projectId, currentStatus, onSaved }: { projectId?:
     const doUpdate = async () => {
       try {
         const enumStatus = (selectedStatus || "active").toUpperCase()
-        const res = await fetch(`http://localhost:8082/projects/${projectId}/status?status=${encodeURIComponent(enumStatus)}`, {
+        const res = await fetch(projectsPath(`/projects/${projectId}/status?status=${encodeURIComponent(enumStatus)}`), {
           method: "PUT",
         })
         if (!res.ok) {

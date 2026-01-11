@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { labsPath } from "@/lib/backend"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -19,8 +20,8 @@ export function LabsGrid() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // explicit localhost endpoint
-    fetch("http://localhost:8080/labs")
+    // explicit localhost endpoint (overridden by NEXT_PUBLIC_LABS_SERVICE_URL in k8s)
+    fetch(labsPath('/labs'))
       .then((res) => {
         if (!res.ok) throw new Error(res.statusText)
         return res.json()

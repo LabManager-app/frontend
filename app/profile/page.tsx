@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { projectsPath } from "@/lib/backend"
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any | null>(null)
@@ -24,8 +25,8 @@ export default function ProfilePage() {
         if (!me || !me.id) return
 
         const [resActive, resPast] = await Promise.all([
-          fetch(`http://localhost:8082/projects/user/${me.id}/active`),
-          fetch(`http://localhost:8082/projects/user/${me.id}/completed`),
+          fetch(projectsPath(`/projects/user/${me.id}/active`)),
+          fetch(projectsPath(`/projects/user/${me.id}/completed`)),
         ])
 
         if (resActive.ok) setCurrentProjects(await resActive.json())
