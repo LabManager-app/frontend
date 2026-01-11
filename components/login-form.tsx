@@ -11,6 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export function LoginForm() {
   const router = useRouter()
+  // debug: print client-side env var to verify Vercel/Next envs
+  // eslint-disable-next-line no-console
+  console.log("API BASE URL:", process.env.NEXT_PUBLIC_USERS_SERVICE_URL)
   const [mode, setMode] = useState<"login" | "register">("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
